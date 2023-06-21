@@ -1,108 +1,135 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 #include "monty.h"
-#define _GNU_SOURCE
+#define MAX_LINE_LENGTH 1024
 
-/* Global variable */
-stack_t *stack = NULL;
+stack_t *stack;
 
-/* Function implementations for opcode functions */
+void opcode_push(stack_t **stack, unsigned int line_number);
+void opcode_pall(stack_t **stack, unsigned int line_number);
+int is_number(const char *str);
 
-void opcode_push(stack_t **stack, unsigned int line_number)
-{
-    int value;
-    stack_t *new_node = malloc(sizeof(stack_t));
-    char *value_str = strtok(NULL, " \t\n");
-    if (value_str == NULL)
-    {
-        fprintf(stderr, "L%u: usage: push integer\n", line_number);
-        exit(EXIT_FAILURE);
-    }
-
-    value = atoi(value_str);
-
-    if (new_node == NULL)
-    {
-        fprintf(stderr, "Error: malloc failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    new_node->n = value;
-    new_node->prev = NULL;
-    new_node->next = *stack;
-
-    if (*stack != NULL)
-        (*stack)->prev = new_node;
-
-    *stack = new_node;
-}
-
-void opcode_pall(stack_t **stack, unsigned int line_number __attribute__((unused)))
-{
-    /* Implementation for pall opcode */
-    /* Prints all values in the stack */
-    /* Access stack and print values */
-    stack_t *current = *stack;
-
-    while (current != NULL)
-    {
-        printf("%d\n", current->n);
-        fflush(stdout); 
-        current = current->next;
-    }
-}
-
-
-/* Main function */
-
+/**
+ * main - Entry point
+ * @argc: Number of command-line arguments
+ * @argv: Array of command-line arguments
+ *
+ * Return: 0 on success
+ */
 int main(int argc, char *argv[])
 {
-   
-    char *line = NULL;
+    FILE *file;
+    char line[MAX_LINE_LENGTH];
+    unsigned int line_number = 0;
+    char *opcode;
+    void (*opcode_func)(stack_t **stack, unsigned int line_number);
 
-    unsigned int line_number = 1;
-    FILE *file = fopen(argv[1], "r");
-    size_t len = 0;
-
-	/* Check if file argument is provided */
     if (argc != 2)
     {
         fprintf(stderr, "USAGE: monty file\n");
         exit(EXIT_FAILURE);
     }
 
-    /* Open and read the Monty byte code file */
+    file = fopen(argv[1], "r");
     if (file == NULL)
     {
         fprintf(stderr, "Error: Can't open file %s\n", argv[1]);
         exit(EXIT_FAILURE);
     }
 
-    /* Process each line of the file */
-    while (fgets(line, len, file) != NULL)
+    while (fgets(line, MAX_LINE_LENGTH, file) != NULL)
     {
-        /* Tokenize line to extract opcode and arguments */
-        char *opcode = strtok(line, " \t\n");
+        line_number++;
+        opcode = strtok(line, " \t\n");
+        if (opcode == NULL || strncmp(opcode, "#", 1) == 0)
+            continue;
 
-        if (opcode != NULL && opcode[0] != '#') /* Ignore comments */
+        opcode_func = NULL;
+        /* Add your opcode function lookup code here */
+
+        if (opcode_func == NULL)
         {
-            /* Match opcode with corresponding function from instruction_t structure and execute it */
-            if (strcmp(opcode, "push") == 0)
-                opcode_push(&stack, line_number);
-            else if (strcmp(opcode, "pall") == 0)
-                opcode_pall(&stack, line_number);
-            else
-            {
-                fprintf(stderr, "L%u: unknown instruction %s\n", line_number, opcode);
-                exit(EXIT_FAILURE);
-            }
+            fprintf(stderr, "L%d: unknown instruction %s\n", line_number, opcode);
+            exit(EXIT_FAILURE);
         }
 
-        line_number++;
+        opcode_func(&stack, line_number);
     }
 
-    /* Clean up and close the file */
     fclose(file);
-    free(line);
+    exit(EXIT_SUCCESS);
+}
 
-    return EXIT_SUCCESS;
+/**
+ * opcode_push - Pushes an element to the stack
+ * @stack: Double pointer to the stack
+ * @line_number: Line number being executed
+ */
+void opcode_push(stack_t **stack, unsigned int line_number)
+{
+    stack_t *new_node;
+    char *n;
+
+    n = strtok(NULL, " \t\n");
+    if (n == NULL || !is_number(n))
+    {
+        fprintf(stderr, "L%d: usage: push integer\n", line_number);
+        exit(EXIT_FAILURE);
+    }
+
+    new_node = malloc(sizeof(stack_t));
+    if (new_node == NULL)
+    {
+        fprintf(stderr, "Error: malloc failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    new_node->n = atoi(n);
+    new_node->next = *stack;
+    *stack = new_node;
+}
+
+/**
+ * opcode_pall - Prints all elements in the stack
+ * @stack: Double pointer to the stack
+ * @line_number: Line number being executed
+ */
+void opcode_pall(stack_t **stack, unsigned int line_number)
+{
+    stack_t *current;
+
+    (void)line_number;
+
+    current = *stack;
+    while (current != NULL)
+    {
+        printf("%d\n", current->n);
+        current = current->next;
+    }
+}
+
+/**
+ * is_number - Checks if a string represents a number
+ * @str: String to check
+ *
+ * Return: 1 if string is a number, 0 otherwise
+ */
+int is_number(const char *str)
+{
+    if (str == NULL || *str == '\0')
+        return 0;
+
+    if (*str == '-' || *str == '+')
+        str++;
+
+    for (; *str != '\0'; str++)
+    {
+        if (!isdigit(*str))
+            return 0;
+    }
+
+    return 1;
 }
 
