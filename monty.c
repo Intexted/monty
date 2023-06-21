@@ -25,7 +25,13 @@ int main(int argc, char *argv[])
     unsigned int line_number = 0;
     char *opcode;
     void (*opcode_func)(stack_t **stack, unsigned int line_number);
-
+    int i;
+    instruction_t opcodes[] = {
+        {"push", opcode_push},
+        {"pall", opcode_pall},
+        /* Add more opcode-function pairs here */
+        {NULL, NULL} 
+    };
     if (argc != 2)
     {
         fprintf(stderr, "USAGE: monty file\n");
@@ -39,6 +45,8 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+   
+
     while (fgets(line, MAX_LINE_LENGTH, file) != NULL)
     {
         line_number++;
@@ -47,7 +55,14 @@ int main(int argc, char *argv[])
             continue;
 
         opcode_func = NULL;
-        /* Add your opcode function lookup code here */
+        for (i = 0; opcodes[i].opcode != NULL; i++)
+        {
+            if (strcmp(opcode, opcodes[i].opcode) == 0)
+            {
+                opcode_func = opcodes[i].f;
+                break;
+            }
+        }
 
         if (opcode_func == NULL)
         {
@@ -61,6 +76,7 @@ int main(int argc, char *argv[])
     fclose(file);
     exit(EXIT_SUCCESS);
 }
+
 
 /**
  * opcode_push - Pushes an element to the stack
@@ -118,18 +134,15 @@ void opcode_pall(stack_t **stack, unsigned int line_number)
  */
 int is_number(const char *str)
 {
-    if (str == NULL || *str == '\0')
-        return 0;
-
-    if (*str == '-' || *str == '+')
-        str++;
-
-    for (; *str != '\0'; str++)
-    {
-        if (!isdigit(*str))
-            return 0;
-    }
-
-    return 1;
+	if (str == NULL || *str == '\0')
+		return (0);
+	if (*str == '-' || *str == '+')
+		str++;
+	for (; *str != '\0'; str++)
+	{
+		if (!isdigit(*str))
+			return (0);
+	}
+	return (1);
 }
 
